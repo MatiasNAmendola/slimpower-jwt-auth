@@ -113,8 +113,12 @@ class JwtAuthentication extends AbstractAuthentication {
         }
 
         /* If everything fails log and return false. */
-        $this->message = "Token not found";
-        $this->log(LogLevel::WARNING, $this->message);
+        $message = "Token not found";
+
+        $this->error = new \SlimPower\Authentication\Error();
+        $this->error->setDescription($message);
+
+        $this->log(LogLevel::WARNING, $message);
         return false;
     }
 
@@ -124,7 +128,11 @@ class JwtAuthentication extends AbstractAuthentication {
                             $token, $this->options["secret"], array("HS256", "HS512", "HS384", "RS256")
             );
         } catch (\Exception $exception) {
-            $this->message = $exception->getMessage();
+            $message = $exception->getMessage();
+
+            $this->error = new \SlimPower\Authentication\Error();
+            $this->error->setDescription($message);
+
             $this->log(LogLevel::WARNING, $exception->getMessage(), array($token));
             return false;
         }

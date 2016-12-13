@@ -102,7 +102,7 @@ class JwtAuthentication extends AuthenticationMiddleware {
 
         if (preg_match("/Bearer\s+(.*)$/i", $header, $matches)) {
             $this->log(LogLevel::DEBUG, $message);
-            return $matches[1];
+            return array('token' => $matches[1]);
         }
 
         /* Bearer not found, try a cookie. */

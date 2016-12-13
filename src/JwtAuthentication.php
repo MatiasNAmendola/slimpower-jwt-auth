@@ -61,8 +61,9 @@ class JwtAuthentication extends AuthenticationMiddleware {
     }
 
     protected function customValidation() {
+
         /* If token cannot be decoded return with 401 Unauthorized. */
-        if (false === $decoded = $this->decodeToken($this->data)) {
+        if (false === $decoded = $this->decodeToken($this->data['token'])) {
             return false;
         } else {
             $this->data['decoded'] = $decoded;

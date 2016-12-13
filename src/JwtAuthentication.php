@@ -40,12 +40,12 @@
 
 namespace SlimPower\JwtAuthentication;
 
-use SlimPower\Authentication\AbstractAuthentication;
+use SlimPower\Authentication\Abstracts\AuthenticationMiddleware;
 use Psr\Log\LoggerInterface;
 use Psr\Log\LogLevel;
 use SlimPower\JWT\JWT;
 
-class JwtAuthentication extends AbstractAuthentication {
+class JwtAuthentication extends AuthenticationMiddleware {
 
     protected $logger;
 

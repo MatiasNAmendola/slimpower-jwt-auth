@@ -40,12 +40,10 @@
 
 namespace SlimPower\JwtAuthentication;
 
-use SlimPower\Authentication\Abstracts\AuthenticationMiddleware;
-use Psr\Log\LoggerInterface;
-use Psr\Log\LogLevel;
+use SlimPower\Authentication\Abstracts\TokenAuthMiddleware;
 use SlimPower\JWT\JWT;
 
-class JwtAuthentication extends AuthenticationMiddleware {
+class JwtAuthentication extends TokenAuthMiddleware {
 
     protected $logger;
 
@@ -53,109 +51,22 @@ class JwtAuthentication extends AuthenticationMiddleware {
         parent::setOptions($options);
 
         $base = array(
-            "cookie" => "token",
             "secret" => "secret"
         );
 
         $this->options = array_replace_recursive($base, $this->options);
     }
 
-    protected function customValidation() {
+    public function decodeToken($token, &$details) {
+        $details = '';
+        $allowedAlgs = array("HS256", "HS512", "HS384", "RS256");
 
-        /* If token cannot be decoded return with 401 Unauthorized. */
-        if (false === $decoded = $this->decodeToken($this->data['token'])) {
-            return false;
-        } else {
-            $this->data['decoded'] = $decoded;
-
-            /* Everything ok, add custom property! */
-            $this->app->jwtenc = $this->data['token'];
-
-            return true;
-        }
-    }
-
-    /**
-     * Get Params
-     * @return array Params
-     */
-    protected function getParams() {
-        $params = array("decoded" => $this->data['decoded'], "app" => $this->app);
-        return $params;
-    }
-
-    /**
-     * Fetch the access token
-     *
-     * @return string|false Base64 encoded JSON Web Token or false if not found.
-     */
-    public function fetchData() {
-        /* If using PHP in CGI mode and non standard environment */
-        if (isset($_SERVER[$this->options["environment"]])) {
-            $message = "Using token from environent";
-            $header = $_SERVER[$this->options["environment"]];
-        } else {
-            $message = "Using token from request header";
-            $header = $this->app->request->headers("Authorization");
-        }
-
-        $matches = null;
-
-        if (preg_match("/Bearer\s+(.*)$/i", $header, $matches)) {
-            $this->log(LogLevel::DEBUG, $message);
-            return array('token' => $matches[1]);
-        }
-
-        /* Bearer not found, try a cookie. */
-        if ($this->app->getCookie($this->options["cookie"])) {
-            $this->log(LogLevel::DEBUG, "Using token from cookie");
-            $token = $this->app->getCookie($this->options["cookie"]);
-            return array('token' => $token);
-        }
-
-        /* If everything fails log and return false. */
-        $message = "Token not found";
-
-        $this->error = new \SlimPower\Authentication\Error();
-        $this->error->setDescription($message);
-
-        $this->log(LogLevel::WARNING, $message);
-        return false;
-    }
-
-    public function decodeToken($token) {
         try {
-            return JWT::decode(
-                            $token, $this->options["secret"], array("HS256", "HS512", "HS384", "RS256")
-            );
+            return JWT::decode($token, $this->options["secret"], $allowedAlgs);
         } catch (\Exception $exception) {
-            $message = $exception->getMessage();
-
-            $this->error = new \SlimPower\Authentication\Error();
-            $this->error->setDescription($message);
-
-            $this->log(LogLevel::WARNING, $exception->getMessage(), array($token));
+            $details = $exception->getMessage();
             return false;
         }
-    }
-
-    /**
-     * Get the cookie name where to search the token from
-     *
-     * @return string
-     */
-    public function getCookie() {
-        return $this->options["cookie"];
-    }
-
-    /**
-     * Set the cookie name where to search the token from
-     *
-     * @return self
-     */
-    public function setCookie($cookie) {
-        $this->options["cookie"] = $cookie;
-        return $this;
     }
 
     /**
@@ -175,43 +86,6 @@ class JwtAuthentication extends AuthenticationMiddleware {
     public function setSecret($secret) {
         $this->options["secret"] = $secret;
         return $this;
-    }
-
-    /* Cannot use traits since PHP 5.3 should be supported */
-
-    /**
-     * Get the logger
-     *
-     * @return Psr\Log\LoggerInterface $logger
-     */
-    public function getLogger() {
-        return $this->logger;
-    }
-
-    /**
-     * Set the logger
-     *
-     * @param Psr\Log\LoggerInterface $logger
-     * @return self
-     */
-    public function setLogger(LoggerInterface $logger = null) {
-        $this->logger = $logger;
-        return $this;
-    }
-
-    /**
-     * Logs with an arbitrary level.
-     *
-     * @param mixed  $level
-     * @param string $message
-     * @param array  $context
-     *
-     * @return null
-     */
-    public function log($level, $message, array $context = array()) {
-        if ($this->logger) {
-            return $this->logger->log($level, $message, $context);
-        }
     }
 
 }
